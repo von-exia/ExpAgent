@@ -1,0 +1,11 @@
+baidusearch==1.0.3
+beautifulsoup4==4.14.3
+huggingface_hub==0.33.5
+mnn==3.2.2
+numpy==2.4.1
+playwright==1.57.0
+PyYAML==6.0.3
+Requests==2.32.5
+sentence_transformers==2.7.0
+shortuuid==1.0.13
+wikipedia==1.4.0
