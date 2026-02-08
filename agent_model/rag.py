@@ -3,16 +3,32 @@ import glob
 import time
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple, Union
+
 from sentence_transformers import SentenceTransformer
 
 
+class LocalEmbeddingModel:
+    def __init__(self, model_name):
+        start_time = time.time()
+        self.embedding_model = SentenceTransformer(model_name)
+        self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+        end_time = time.time()
+        print(f"✅ Embedding model loaded in {end_time - start_time:.2f}s")
+        print(f"📊 Embedding dimension: {self.embedding_dim}")
+        
+    def encode(self, query, documents):
+        query_embeddings = self.embedding_model.encode(query, prompt_name="query", normalize_embeddings=True)
+        document_embeddings = self.embedding_model.encode(documents, normalize_embeddings=True)
+        return query_embeddings, document_embeddings
+            
+
 class RealTimeRAG:
-    
     def __init__(self, 
-                 embedding_model_name: str = "./Qwen3-0.6B-embedding",
+                 embedding_model_name: str = "./models/Qwen3-0.6B-embedding",
+                 embedding_model = None,
                  chunk_size: int = 500,
-                 chunk_overlap: int = 50,
-                 persist_directory: str = "./multi_faiss_db"):
+                 chunk_overlap: int = 50
+                 ):
         """
         Args:
             embedding_model_name: SentenceTransformer模型名称
@@ -21,39 +37,22 @@ class RealTimeRAG:
             persist_directory: FAISS索引存储根目录
         """
         self.embedding_model_name = embedding_model_name
+        self.embedding_model = embedding_model
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self.persist_directory = persist_directory
         
-        # 确保存储目录存在
-        # os.makedirs(self.persist_directory, exist_ok=True)
-        
-        # 初始化组件
         self._initialize_components()
-        
-        # 存储状态
-        # self.vectorstores = {}  # 文件名 -> FAISS向量库
-        # self.document_info = {}  # 文件信息
-        # self.is_loaded = False
-        # self.document_count = 0
-        # self.loaded_files = set()
     
     def _initialize_components(self):
         """初始化各个组件"""
-        print("🔧 Initializing Episodic RAG components...")
-        
-        # 1. 加载embedding模型
-        print(f"🔢 Loading embedding model: {self.embedding_model_name}")
-        start_time = time.time()
-        self.embedding_model = SentenceTransformer(self.embedding_model_name)
-        self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+        print("🔧 Initializing RAG components...")
+        if self.embedding_model is None:
+            print(f"🔢 Loading Local embedding model: {self.embedding_model_name}")
+            self.embedding_model = LocalEmbeddingModel(self.embedding_model_name)
         self.text_spliter = SimpleTextSplitter(self.chunk_size, self.chunk_overlap)
-        end_time = time.time()
-        print(f"✅ Embedding model loaded in {end_time - start_time:.2f}s")
-        print(f"📊 Embedding dimension: {self.embedding_dim}")
         print("✅ Real-time RAG components initialized successfully!")
     
-
+    
     def execute(self, 
                 query: str, 
                 documents: List[str],
@@ -84,43 +83,33 @@ class RealTimeRAG:
             chunks_list = []
             for doc in documents:
                 chunks = self.text_spliter.split_text(doc)
-                # print("doc:", doc)
-                # print("chunk:", chunks)
                 chunks_list += chunks
-            documents = chunks_list
+            documents = chunks_list[:10] # only use top chunk for debug and for the limitation of API
                     
-        # 1. 编码query和documents
-        query_embeddings = self.embedding_model.encode(query, prompt_name="query", normalize_embeddings=True)
-        document_embeddings = self.embedding_model.encode(documents, normalize_embeddings=True)
+        # Encode query and documents
+        query_embeddings, document_embeddings = self.embedding_model.encode(query, documents)
         
-        # 2. 计算相似度（cosine similarity）
-        # SentenceTransformer的similarity返回的是cosine相似度矩阵
+        # Compute cosine similarity
+        # similarity_matrix's shape is (1, num_documents)
         similarity_matrix = np.matmul(query_embeddings, document_embeddings.T)
-        # print(similarity_matrix, similarity_matrix.shape)
-        
-        # 3. 获取query与每个document的相似度分数
-        # similarity_matrix形状为 (1, num_documents)
         similarity_scores = similarity_matrix[0]
         
-        # 4. 按分数降序排序，获取前k个索引
+        # Sort by scores
         if k > len(documents):
             k = len(documents)
-        
-        # 获取前k个最高分的索引
         top_k_indices = np.argsort(similarity_scores)[-k:][::-1]
         
-        # 5. 应用分数阈值（如果提供）
+        # Apply score threshold (if provided)
         if score_threshold is not None:
             valid_indices = [idx for idx in top_k_indices if similarity_scores[idx] >= score_threshold]
             if not valid_indices:
                 return ([], []) if return_scores else []
             top_k_indices = np.array(valid_indices)
         
-        # 6. 获取对应的文档和分数
+        # Get corresponding docs and scores
         top_documents = [documents[idx] for idx in top_k_indices]
         top_scores = [float(similarity_scores[idx]) for idx in top_k_indices]
         
-        # 7. 返回结果
         if return_scores:
             return top_documents, top_scores
         else:

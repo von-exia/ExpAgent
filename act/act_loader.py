@@ -69,15 +69,18 @@ class ActLoader:
         content = ""
         ind = 0
         for action_type, action_class in cls._actions.items():
-            content += f"({ind}) {action_type}: {action_class.content()};\n"
+            # content += f"({ind}) {action_type}: {action_class.content()};\n"
+            content += f"- {action_type} ({action_class.content()})\n"
             ind += 1
 
         for tool_type, tool_class in cls._tools.items():
-            content += f"({ind}) {tool_type}: {tool_class.content()};\n"
+            # content += f"({ind}) {tool_type}: {tool_class.content()};\n"
+            content += f"- {tool_type} ({tool_class.content()})\n"
             ind += 1
 
         for skill_name, skill in cls._skills.items():
-            content += f"({ind}) {skill_name}: {skill.description};\n"
+            # content += f"({ind}) {skill_name}: {skill.description};\n"
+            content += f"- {skill_name} ({skill.description})\n"
             ind += 1
 
         return content.rstrip("; ")

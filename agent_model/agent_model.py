@@ -5,7 +5,8 @@ from typing import Dict, List, Optional
 
 from act import *
 from agent_model.rag import RealTimeRAG
-from agent_model.env import Environment
+from agent_model.verifier import Verifier
+from agent_model.utils import extract_dict_from_text
 
 
 class AgentModel:
@@ -14,7 +15,7 @@ class AgentModel:
                  model=None,
                  action_dict={},
                  tool_dict={},
-                 use_skills=True,
+                 use_skills=False,
                  use_rag: Optional[bool|RealTimeRAG]=False,
                  planner_cls=None,
                  planner_cfg=None
@@ -47,70 +48,103 @@ class AgentModel:
         self.browser_processor = None  # Initialize browser processor to None
         self.selection_prompt = None
         self.plan_prompt = None
+        self.reasoning_prompt = None
         self._init_prompts()
         
         # Ensure the planner of child (e.g., Skill and Browser-tool)
-        if planner_cls is None or planner_cfg is None:
-            raise "The planner for the Skill or Browser-tool is not decided."
+        if (planner_cls is None or planner_cfg is None) and use_skills:
+            raise ValueError("The planner for the Skill or Browser-tool is not decided.")
         self.planner_cls = planner_cls
         self.planner_cfg = planner_cfg
         
     def _init_prompts(self):
         self.selection_prompt = """
-Your task is to analyze the given question and options (actions), then choose ONLY the correct option index number or the action you want to do, like <answer>index</answer>.
-Example 1
-Query: 1 + 2 = ?
-Options:
-(0) 5
-(1) 3
-(2) 1
-(3) -1
-Output Format:
-<answer>1</answer>
+[SELECTION GUIDELINES]
+Choose ONLY the correct option or the most suitable action you want to perform from **OPTIONS**, to complete the current goal.
 
-Example 2
-Query: What is the capital of France?
-Options:
-(0) Berlin
-(1) Madrid
-(2) Paris
-(3) Rome
-Output Format:
-<answer>2</answer>
-
-Example 3
-Query: Please bring one pudding and one juice on the coffee table.
-Options:
-(0) Act
-(1) Expand
-Output Format:
-<answer>1</answer>
-
-The task you need to achieve is:
-Query: 
+[USER]
+Query:
 {query}
-"""
-        
-        self.plan_prompt = """
-Decompose the goal into subgoals and select the optimal control flow, output decision and subgoals enclosed within <decision>...</decision> and <subgoals>...</subgoals> tags respectively.
-## Control Flow:
-Sequence: Achieve subgoals sequentially. If any subgoal fails, the sequence is interrupted
-Fallback: Attempt subgoals in order until one succeeds. If a subgoal is successful, the remaining subgoals are not attempted
-Parallel: Achieve subgoals in parallel; this enables tasks to continue independently, even if one subgoal fails
-## Example:
-Query: Book a trip to Paris
-Decision: <decision>sequence</decision>
-Subgoals: 
-<subgoals>Find and book available flight</subgoals>
-<subgoals>Reserve accommodation</subgoals>
-<subgoals>Plan itinerary for sightseeing</subgoals>
 
-user
-Query: {query}
+**OPTIONS**:
+{options_text}
 
-assistant
+## OUTPUT FORMAT:
+Output the option's index number and corresponding option's name.
+Output STRICTLY according to this JSON Schema:
+{{
+    "selected_index": "integer",
+    "selected_option_name": "string"
+}}
+
+Return only valid JSON.
+
+[ASSISTANT]
 /no_think
 """
+
+        self.plan_prompt = '''
+[PLANNING GUIDELINES]
+The objective of planning is to solve a difficult problem step by step, through decoupling it into some small subtasks. You should perform as following: 
+1) Analyze the current goal
+2) Select the optimal control flow as shwon in [Control Flow]
+3) Break down the current goal into N subgoals, based on [Act List] below
+
+[Control Flow]
+- sequence: Achieve subgoals sequentially. If any subgoal fails, the sequence is interrupted. Use when: Steps must be completed in order, each depends on previous step's success
+- fallback: Attempt subgoals in order until one succeeds. If a subgoal is successful, the remaining subgoals are not attempted. Use when: Multiple alternative methods to achieve same goal
+- parallel: Achieve subgoals in parallel.This enables tasks to continue independently, even if one subgoal fails. Use when: Independent tasks that can run simultaneously
+
+[Act List]
+{act_list}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "control_flow": "sequence|fallback|parallel",
+    "subgoals": [
+        {{"subgoal": "string", "act_name": "string"}},
+    ]
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+[ASSISTANT]
+/no_think
+'''
+
+        self.reasoning_prompt = '''
+[REASONING GUIDELINES]
+This action is to think, analyze, interpret, or strategize for the accomplishment of the current goal. Provide your reasoning process enclosed within the JSON response.
+Simultaneously, determine the status of current goal. If current information is enough and the current goal is completed output "completed" within the JSON response.
+
+## Available act list:
+{act_list}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "think": "string",
+    "status": "completed|incompleted"
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+[ASSISTANT]
+/no_think
+'''
         
     def _init_rag_generator(self):
         self.rag_generator = RealTimeRAG(chunk_size=1000)
@@ -149,7 +183,7 @@ assistant
                                tool_dict=tool_dict, 
                                use_skills=False,
                                use_rag=False)
-        env = Environment(critique=self.model)
+        env = Verifier(model=self.model)
         # cfg = Config()
         # rat_planner = ReAcTreePlanner(
         # cfg=cfg,
@@ -228,7 +262,7 @@ Query:
 {query}
 """)
         new_agent.browser_processor = browser_processor
-        env = Environment(critique=self)
+        env = Verifier(model=self.model)
         # cfg = Config()
         # rat_planner = ReAcTreePlanner(
         # cfg=cfg,
@@ -265,68 +299,68 @@ Goal: {browser_query}
         result = new_planner.agent.browser_processor.browser_manager.current_page_text
         return result
 
+        
+    ####################################################################################
+    #                         Implementations for act action                           #
+    ####################################################################################
+
     def act(self, goal: str) -> str:
         query = f"""
-Goal: {goal}
-Which action is more suitable to achieve this goal?
+ACT LIST:
+{self.action_content}        
+        
+{goal}
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+From the ACT LIST, which is the most suitable act to achieve the current goal? 
 """
-        selected_action = self.select(
-            query=query+self.action_content,
+        selected_act = self.select(
+            query=query,
             options=self.action_list
         )
-        print(f"Selected action: {selected_action}")
-        if selected_action is None:
-            selected_action = "answer"
-        # selected_action = "browser"
+        if selected_act is None:
+            selected_act = "answer"
             
-        if selected_action in ["baidu_search", "wikipedia_search"]:
-            res = self.act_loader.create(selected_action).execute(self.model, goal, self.rag_generator)
-        elif selected_action in self.act_loader._skills.keys():
-            print(f"Performing skill: {selected_action}")
-            res = self._perform_skill(selected_action, goal)
-        elif selected_action == "browser":
+        if selected_act in ["baidu_search", "wikipedia_search"]:
+            res = self.act_loader.create(selected_act).execute(self.model, goal, self.rag_generator)
+        elif selected_act in self.act_loader._skills.keys():
+            print(f"Performing skill: {selected_act}")
+            res = self._perform_skill(selected_act, goal)
+        elif selected_act == "browser":
             res = self._perform_browser(goal)
-        elif "browser-" in selected_action:
-            res = self.act_loader.create(selected_action).execute(self, goal)
+        elif "browser-" in selected_act:
+            res = self.act_loader.create(selected_act).execute(self, goal)
         else:
-            res = self.act_loader.create(selected_action).execute(self.model, goal)
-        return res
+            res = self.act_loader.create(selected_act).execute(self.model, goal)
+        return selected_act, res
+
+    ####################################################################################
+    #                      Implementations for reasoning action                        #
+    ####################################################################################
     
+    def extract_think_from_json(self, response):
+        response_dict = extract_dict_from_text(response)
+        reasoning = response_dict['think']
+        status = response_dict['status']
+        return reasoning, status
     
     def reasoning(self, query: str) -> str:
-        prompt = f"""
-system
-You are a reasoning assistant. Provide simple reasoning steps enclosed within <reason> ... </reason>. 
+        reasoning_prompt = self.reasoning_prompt.format(query=query, act_list=self.action_content)
+        response = self.model.response(reasoning_prompt, stream=False)
+        reasoning, status = self.extract_think_from_json(response)
+        return reasoning, status
 
-## FORMAT
-<reason>
-...
-</reason>
-
-**Don't think too long! Max length 100 words!**
-
-user
-Query: {query}
-
-assistant
-/no_think
-<reason>
-"""
-        # print(prompt)
-        response = self.model.response(prompt, stream=False)
-        def extract_reasoning_from_response(answer_text: str) -> Optional[int]:
-            pattern = re.compile(r'<reason>\n(.*?)\n</reason>', re.DOTALL)
-            match = pattern.search(answer_text)
-            if match:
-                try:
-                    reasoning = match.group(1)
-                    return reasoning
-                except ValueError:
-                    return None
-            return None
-        reasoning = extract_reasoning_from_response(response)
-        return reasoning
-
+    ####################################################################################
+    #                      Implementations for selection action                        #
+    ####################################################################################
+    
+    def extract_option_from_json(self, response):
+        response_dict = extract_dict_from_text(response)
+        selected_index = response_dict['selected_index']
+        selected_option = response_dict['selected_option_name']
+        return selected_index, selected_option
+    
     def set_selection_prompt(self, prompt: str):
         self.selection_prompt = prompt
     
@@ -343,105 +377,72 @@ assistant
         Returns:
             The selected option string.
         """
-        selection_prompt = self.selection_prompt.format(query=query)+ "\nOptions:"
+        
+        ######## Organize the options text #########
+        options_text = ""
         for ind, option in enumerate(options):
-            selection_prompt += f"\n({ind}) {option}"
-        selection_prompt += "\n\nassistant\n/no_think"
+            options_text += f"({ind}) {option}\n"
+        
+        selection_prompt = self.selection_prompt.format(query=query, options_text=options_text)
+
         # print("######## Selection prompt:\n"+selection_prompt+"\n######## Selection prompt\n")
         response = self.model.response(selection_prompt, stream=False)
-        # response = self.model.response(prompt, stream=True)
-        # print(response)
-        def extract_option_from_answer(answer_text: str) -> Optional[int]:
-            pattern = re.compile(r'<answer>(\d+)</answer>')
-            match = pattern.search(answer_text)
-            if match:
-                try:
-                    index = int(match.group(1))
-                    return index
-                except ValueError:
-                    return None
-            return None
-        selected_id = extract_option_from_answer(response)
+        # print("######## Selection response:\n"+response+"\n######## Selection response\n")
+        selected_index, selected_option = self.extract_option_from_json(response)
         # print("Selection Response Text:\n", response, selected_id)
-        selected = options[selected_id] if selected_id is not None else None
+                
+        if selected_index >= len(options) or options[selected_index] != selected_option: # If number in response exceeds the length of options
+            print("Warning:: Selection Response Text:\n", response, selected_index, options)
+            return selected_option
+        selected = options[selected_index]
         return selected
-    
-    
-    def extract_decision_and_subgoals(self, xml_text: str, strict_mode: bool = True) -> Optional[Dict]:
-        """
-        健壮的提取函数，处理更多边界情况
 
-        Args:
-            xml_text: 包含<decision>和<subgoals>标签的文本
-            strict_mode: 严格模式，如果为True，遇到错误会抛出异常
+    ####################################################################################
+    #                      Implementations for plan action                             #
+    ####################################################################################
 
-        Returns:
-            包含decision和subgoals的字典，失败时返回None
-        """
-        try:
-            # 清理输入文本
-            xml_text = xml_text.strip()
-
-            # 提取decision
-            decision_match = re.search(r'<decision>(.*?)</decision>', xml_text, re.DOTALL | re.IGNORECASE)
-            if not decision_match:
-                if strict_mode:
-                    raise ValueError("未找到有效的<decision>标签")
-                return None
-
-            decision = decision_match.group(1).strip()
-            print(f"Extracted decision: {decision}")
-
-            # 验证decision值
-            valid_decisions = {'sequence', 'fallback', 'parallel'}
-            if decision not in valid_decisions:
-                if strict_mode:
-                    raise ValueError(f"无效的decision值: {decision}，应为sequence/fallback/parallel之一")
-                return None
-
-            # 提取所有<subgoals>标签的内容（支持多个）
-            subgoals_matches = re.findall(r'<subgoals>(.*?)</subgoals>', xml_text, re.DOTALL | re.IGNORECASE)
-
-            if not subgoals_matches:
-                if strict_mode:
-                    raise ValueError("未找到有效的<subgoals>标签")
-                return None
-
-            # 处理每个匹配到的subgoals内容
-            subgoals = []
-            for match in subgoals_matches:
-                subgoal_text = match.strip()
-                if subgoal_text:  # 只添加非空的子目标
-                    subgoals.append(subgoal_text)
-
-            if not subgoals:
-                if strict_mode:
-                    raise ValueError("未找到有效的subgoals")
-                return None
-
-            return {
-                'decision': decision,
-                'subgoals': subgoals,
-                'subgoal_count': len(subgoals)
+    def extract_control_flow_from_json(self, response):
+        response_dict = extract_dict_from_text(response)
+        subgoals = []
+        for subgoal_dict in response_dict['subgoals']:
+            subgoals.append(subgoal_dict['subgoal'])
+        return {
+            'decision': response_dict['control_flow'],
+            'subgoals': subgoals,
+            'subgoal_count': len(subgoals)
             }
-
-        except Exception as e:
-            if strict_mode:
-                raise
-            print(f"提取过程中出错: {e}")
-            return None
-
+    
     def set_plan_prompt(self, prompt: str):
         self.plan_prompt = prompt
     
     def plan(self, query: str) -> str:
-        plan_prompt = self.plan_prompt.format(query=query)
-        # print(plan_prompt)
+        plan_prompt = self.plan_prompt.format(query=query, act_list=self.action_content)
         response = self.model.response(plan_prompt, stream=False)
-        # print("Planning Response:\n", response)
-        response = self.extract_decision_and_subgoals(response, strict_mode=True)
+        response = self.extract_control_flow_from_json(response)
         return response
-    
+
+    ####################################################################################
+    #                Implementations for answer extraction action                      #
+    ####################################################################################
+
+    def extract_answer(self, query, response):
+        prompt = f"""
+Given the query and agent's response, extract the answer base on the requirements from query in tags <answer>..</answer>:
+Query:
+{query}
+Response:
+{response}        
+
+[Assistant]
+/no_think
+"""
+        answer = self.model.response(prompt, False)
+        answer_match = re.search(r'<answer>(.*?)</answer>', answer, re.DOTALL | re.IGNORECASE)
+        if not answer_match:
+            return ""
+        answer = answer_match.group(1).strip()
+        print(f"Extracted answer: {answer}")
+        return answer
     
 if __name__ == "__main__":
     config_path = "./Qwen3-8B-MNN/"

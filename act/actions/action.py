@@ -1,37 +1,6 @@
-import re
 from typing import List, Optional
 import ast
 
-import importlib
-import sys
-
-def reload_module_and_import_star(module_name, target_globals=None):
-    """
-    重新加载模块并执行 from module_name import *
-    
-    Args:
-        module_name: 模块名称（字符串）
-        target_globals: 要更新到的命名空间（默认为调用者的globals）
-    """
-    if target_globals is None:
-        # 获取调用者的全局命名空间
-        target_globals = sys._getframe(1).f_globals
-    
-    # 如果模块已经导入，重新加载它
-    if module_name in sys.modules:
-        module = importlib.reload(sys.modules[module_name])
-    else:
-        # 导入模块
-        module = __import__(module_name, target_globals, target_globals, ['*'])
-    
-    # 获取模块中所有不以下划线开头的公共名称
-    public_names = [name for name in dir(module) if not name.startswith('_')]
-    
-    # 将这些名称添加到目标命名空间
-    for name in public_names:
-        target_globals[name] = getattr(module, name)
-    
-    return module
 
 class ActionFactory:
     """ActionFactory: implements a factory pattern for creating action instances."""

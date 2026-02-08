@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+# flake8: noqa: E501
+# pylint: disable=line-too-long
+"""Borrowed and modified the view text file tool from agentscope."""
+import os
+import re
+from act.tools.tool import Tool
+from agent_model.utils import extract_dict_from_text
+
 
 def _assert_ranges(
     ranges: list[int],
@@ -14,11 +23,11 @@ def _assert_ranges(
     ):
         start, end = ranges
         if start > end:
-            raise f"InvalidArgumentError: The start line is greater than the " +\
-                f"end line in the given range {ranges}."
+            raise ValueError(f"InvalidArgumentError: The start line is greater than the " +
+                f"end line in the given range {ranges}.")
     else:
-        raise f"InvalidArgumentError: Invalid range format. Expected a list of " +\
-            f"two integers, but got {ranges}."
+        raise ValueError(f"InvalidArgumentError: Invalid range format. Expected a list of " +
+            f"two integers, but got {ranges}.")
 
 
 def _view_text_file(
@@ -34,9 +43,19 @@ def _view_text_file(
         start, end = ranges
 
         if start > len(lines):
-            raise f"InvalidArgumentError: The range '{ranges}' is out of bounds " +\
-                f"for the file '{file_path}', which has only {len(lines)} " +\
-                f"lines."
+            raise ValueError(f"InvalidArgumentError: The range '{ranges}' is out of bounds " +
+                f"for the file '{file_path}', which has only {len(lines)} " +
+                f"lines.")
+
+        # Handle negative indices for end of file
+        if start < 0:
+            start = len(lines) + start + 1
+        if end < 0:
+            end = len(lines) + end + 1
+
+        # Adjust start and end to be within valid range
+        start = max(1, start)
+        end = min(len(lines), end)
 
         view_content = [
             f"{index + start}: {line}"
@@ -48,45 +67,90 @@ def _view_text_file(
     return "".join(f"{index + 1}: {line}" for index, line in enumerate(lines))
 
 
-# -*- coding: utf-8 -*-
-# flake8: noqa: E501
-# pylint: disable=line-too-long
-"""The view text file tool in agentscope."""
-import os
+class ViewTextFile(Tool):
+    """A tool to view the content of a text file with line numbers."""
+
+    def __init__(self):
+        self._init_prompt()
+
+    def _init_prompt(self):
+        self.key_prompt = """
+[EXTRACTION GUIDELINES]
+Extract file path and ranges from the query. Follow these principles:
+1. Identify the file path from the query
+2. If line ranges are specified, extract them as a list of two integers
+3. Return the extracted information in JSON format
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "file_path": "string",
+    "ranges": ["int", "int"] | null
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+[ASSISTANT]
+/no_think
+"""
+
+    def extract_arg_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        file_path = response_dict['file_path']
+        ranges = response_dict['ranges']
+        return file_path, ranges
 
 
+    def execute(self, agent, query: str) -> str:
+        """
+        Execute the view text file operation based on the query.
 
-async def view_text_file(
-    file_path: str,
-    ranges: list[int] | None = None,
-):
-    """View the file content in the specified range with line numbers. If `ranges` is not provided, the entire file will be returned.
+        Args:
+            agent: The agent object (not used in this tool).
+            query (str): The query containing the file path and optional line ranges.
 
-    Args:
-        file_path (`str`):
-            The target file path.
-        ranges:
-            The range of lines to be viewed (e.g. lines 1 to 100: [1, 100]), inclusive. If not provided, the entire file will be returned. To view the last 100 lines, use [-100, -1].
+        Returns:
+            str: The content of the file or an error message.
+        """
+        # Extract file path and ranges from the query using JSON format
+        key_prompt = self.key_prompt.format(query=query)
+        response = agent.response(key_prompt, stream=False)
+        file_path, ranges = self.extract_arg_from_response(response)
 
-    Returns:
-        `ToolResponse`:
-            The tool response containing the file content or an error message.
-    """
-    if not os.path.exists(file_path):
-        return f"Error: The file {file_path} does not exist."
-    if not os.path.isfile(file_path):
-        return f"Error: The path {file_path} is not a file."
+        # Validate file path
+        if not os.path.exists(file_path):
+            return {"success": False, "response": f"Error: The file {file_path} does not exist."}
+        if not os.path.isfile(file_path):
+            return {"success": False, "response": f"Error: The path {file_path} is not a file."}
 
-    try:
-        content = _view_text_file(file_path, ranges)
-    except Exception as e:
-        return e
+        try:
+            content = _view_text_file(file_path, ranges)
+        except Exception as e:
+            return {"success": False, "response": f"Error: {str(e)}"}
 
-    if ranges is None:
-        return f"""The content of {file_path}:
+        if ranges is None:
+            return {"success": True,
+                   "response": f"""The content of {file_path}:
 ```
-{content}```"""
-    else:
-        return f"""The content of {file_path} in {ranges} lines:
+{content}```"""}
+        else:
+            return {"success": True,
+                   "response": f"""The content of {file_path} in {ranges} lines:
 ```
-{content}```"""
+{content}```"""}
+
+    @classmethod
+    def content(cls):
+        return """
+Function: View the content of a text file with line numbers
+Method: [
+    Extract file path and ranges from query,
+    Read the file content with specified ranges,
+    Return the content with line numbers
+]
+Return: File content with line numbers
+"""

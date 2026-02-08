@@ -38,12 +38,18 @@ coverage.xml
 
 # IDE
 .vscode/
+models/
+results/
 Qwen*/
+DeepSeek*/
 hf_cahe/
 debug/
 cmd.sh
 download.py
-py_test.py
+py_test_copy.py
+api_keys.json
+reactree.log
+reactree.png
 
 # OS
 .DS_Store

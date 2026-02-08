@@ -1,9 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from time import time
 import wikipedia
+import logging
 
 from act.tools.tool import Tool
+from agent_model.utils import extract_dict_from_text
+
 
 def extract_webpage_content(url: str, max_chars: int = 500) -> str:
     """
@@ -50,6 +54,73 @@ def extract_webpage_content(url: str, max_chars: int = 500) -> str:
 
 
 class WikipediaSearch(Tool):
+    def __init__(self):
+        self._init_prompt()
+        
+    def _init_prompt(self):
+        self.key_prompt = """
+[EXTRACTION GUIDELINES]
+Generate precise Wikipedia search terms. Follow these principles:
+1. Use standard Wikipedia article titles
+2. Include both primary subject and key aspects for complex query
+3. Maximum 3 terms
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "terms": ["string"]
+}}
+
+Return only valid JSON.
+
+[USER]
+Query: 
+{query}
+
+[ASSISTANT]
+/no_think
+"""
+        self.sum_prompt = """
+[EXTRACTION GUIDELINES]
+You have used wikipeida search to obtain the relevant information. Given the retrieval results below, use them to complete the current goal. Consider:
+- Provide concise explanation about the result, where did you cite from. However, keep the explanation relatively short (maximum 200 words)
+- **DO NOT** conduct any calculation or assumption, just Extract the key information about the current goal
+
+[START OF RETRIEVAL RESULTS]
+{ret}
+[END OF RETRIEVAL RESULTS]
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "explanation": "string"
+    "result": "string"
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+[ASSISTANT]
+/no_think
+"""
+        self.sum_template = """
+[START OF WIKIPEDIA SEARCH RESPONSE]
+You have used wikipeida search tool to obtain the relevant information from reliable source, search result is:
+{result}
+Explanation of the result:
+{explanation}
+[END OF WIKIPEDIA SEARCH RESPONSE]
+"""     
+    def _get_wikipedia_url(self, query):
+        """
+        Get the Wikipedia URL for a given query.
+        """
+        query = query.replace(" ", "_") # replace spaces with underscores
+        return f"https://en.wikipedia.org/wiki/{query}"
+    
     def search_wikipedia(self, query, max_length=100, max_pages=10):
         """
         Searches Wikipedia based on the given query and returns multiple pages with their text and URLs.
@@ -89,7 +160,7 @@ class WikipediaSearch(Tool):
                 except Exception as e:
                     pages_data.append({
                         "title": title,
-                        # "url": self._get_wikipedia_url(title),
+                        "url": self._get_wikipedia_url(title),
                         "abstract": "Please use the URL to get the full text further if needed.",
                     })
 
@@ -97,43 +168,36 @@ class WikipediaSearch(Tool):
         except Exception as e:
             return [{"title": None, "url": None, "abstract": None, "error": f"Error searching Wikipedia: {str(e)}"}]
     
+    def extract_terms_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        keywords = response_dict['terms']
+        return keywords
+    
+    def extract_sum_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        summarized_result = response_dict['result']
+        explanation = response_dict['explanation']
+        return summarized_result, explanation
+    
     def execute(self, agent, query: str, rag_generator) -> str:
         self.rag = rag_generator
         self.query = query
 
-        # Improved prompt for keyword extrtool
-        extrtool_prompt = """Given the user query below, extract 1-3 most relevant and concise keywords for wikipedia searching to respond the query, generate between <key_words> 1. 2. ... </key_words>. 
- 
-        Query: {query}
-        
-        Keywords: <key_words> 1. kw1 2. kw2 </key_words>"""
-        
-        # Send to agent for keyword extrtool
-        formatted_prompt = extrtool_prompt.format(query=query)
-        response = agent.response(formatted_prompt + "\n/no_think\n<key_words> 1.", stream=False).strip()
-        
-        def extract_keywords(response):
-            # 提取<key_words>标签内的内容
-            match = re.search(r"<key_words>(.+?)</key_words>", response, re.DOTALL)
-            if match:
-                content = match.group(1).strip()
-                # print(f"标签内容: {content}")
-                keywords = re.findall(r"\d+\.\s*(.+?)(?=\s*\d+\.|$)", content)
-                # print(f"提取的关键词: {keywords}")
-                return keywords
-            return None
-        
-        keywords = extract_keywords(response)
-        print("Key:", keywords)
-        if isinstance(keywords, list):
-            keywords = keywords[0]
-        # print(f"Extracted keywords: {keywords}")
-        
+        key_prompt = self.key_prompt.format(query=query)
+        response = agent.response(key_prompt, stream=False)
+        terms = self.extract_terms_from_response(response)
+        if isinstance(terms, list):
+            terms = terms[0]
         # Use keywords for searching
-        results = self.search_wikipedia(keywords)
-        res = "Search Results:\n"
+        results = self.search_wikipedia(terms, max_length=100, max_pages=3)
+        
+        # results = []
+        # for term in terms:
+        #     results += self.search_wikipedia(term, max_length=100, max_pages=1)
+            
         content_list = []
-        for idx, r in enumerate(results[:3], 1):  # Show top k results
+        for idx, r in enumerate(results[:3]):  # Show top k results
+            # print(idx, r)
             url = r['url']
             try:
                 page_content = extract_webpage_content(url)
@@ -141,30 +205,45 @@ class WikipediaSearch(Tool):
                     # print(idx, "\n", page_content)
                     content_list.append(page_content)
             except Exception as e:
-                pass
+                return{
+                    "success": False,
+                    "response": f"Error in Wikipedia Search tool: {e}"
+                }
+
                 
         ret = ""
-        res = self.rag.execute(self.query, content_list, k=2)
+        print("Start RAG for wiki search results")
+        st = time()
+        res = self.rag.execute(self.query, content_list, k=3)
+        ed = time()
+        print(f"End of RAG: cost time {(ed - st)/60.:.4f} min")
         for i, r in enumerate(res, 1):
             ret += f"\nRetrival result {i}:\n{r}\n"
+        logging.debug("RAG results:\n"+ret)
             
-            
-        res_prompt = f"""Given the user query below, acheive the goal based on the Retrival reslts. 
-Goal: {query}
-Retrival results: {ret}
-"""
-        formatted_prompt = res_prompt.format(query=query, ret = ret)
-        response = agent.response(formatted_prompt + "\n/no_think", stream=False).strip()
+        sum_prompt = self.sum_prompt.format(ret=ret, query=query)
+        response = agent.response(sum_prompt, stream=False)
+        result, explanation = self.extract_sum_from_response(response)
+        ret_sum = self.sum_template.format(result=result, explanation=explanation)
         
-        ret = f"""
-## After Wikipedia search for key words: **{keywords}**
-Retrival results: 
-{ret}
-Agent's answer:
-{response}
-"""
-        return ret
+        return {
+            "success": True,
+            "response": ret_sum
+            }
     
     @classmethod
     def content(cls):
-        return "Extracts keywords from queries and uses Wikipedia search to find relevant information"
+        # return "When you encounter ambiguous, unknown, or potentially inaccurate information, use this tool to search for relevant information"
+        return """
+Function: When you encounter ambiguous, unknown, or potentially inaccurate information, use this tool to search for relevant information
+Method: [
+    Derive terms from query,
+    Search the terms on Wikipedia,
+    Extract the required information from search result,
+    Explain the result
+]
+Return: [
+    Extracted result,
+    explaination of the result   
+]
+"""
