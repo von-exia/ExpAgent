@@ -443,25 +443,3 @@ Response:
         answer = answer_match.group(1).strip()
         print(f"Extracted answer: {answer}")
         return answer
-    
-if __name__ == "__main__":
-    config_path = "./Qwen3-8B-MNN/"
-    # config_path = "./Qwen3-4B-MNN/"
-    # config_path = "./MiMo-7B-RL-MNN/"
-    agent = AgentModel(config_path)
-    
-    with open("system_prompt.txt", "r", encoding="utf-8") as f:
-        sprompt = f.read()
-    sprompt = sprompt.replace("<content_list>", agent.action_content)
-    print(sprompt)
-    
-    query = """How to implement a Python function for addition?"""
-    # query = """Help me to write a deepfake detection paper."""
-    # query = """What is the first name of the only Malko Competition recipient from the 20th Century (after 1977) whose nationality on record is a country that no longer exists?"""
-    
-    # res = agent.plan(query)
-    # res = agent.reasoning(query)
-    # res = agent.select(sprompt+query, options=["Think", "Act", "Expand"])
-    # res = agent.select(sprompt+query, options=["Act", "Expand"])
-    res = agent.act(query)
-    print(f"Response: {res}")
