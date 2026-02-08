@@ -6,7 +6,9 @@
 A framework to experiment on agent <strong>easily</strong>, <strong>quickly</strong>, and <strong>locally</strong>
 </h3>
 
-![ExpAgent](fig/logo.png)
+<p align="center">
+  <img src="./fig/logo.png" alt="" />
+</p>
 
 - Accumulate experience with popular agents for fresh researchers
 - User-friendly usage without complicated engineering implementation
