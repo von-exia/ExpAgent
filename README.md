@@ -168,7 +168,8 @@ ReAcTree is a hierarchical tree-based planning method with three control flows:
   - Sequence: Execute subtasks in order, stop on failure
   - Fallback: Try alternatives until one succeeds
   - Parallel: Execute multiple subtasks concurrently
-![ExpAgent](fig/reactree.png)
+![reactree](fig/reactree.png)
+  - Above figure and `py_test.py` are the results of query: `Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file`
 
 ## Citation
 ```
@@ -178,3 +179,15 @@ ReAcTree is a hierarchical tree-based planning method with three control flows:
   year = {2026},
 }
 ```
+
+## Acknowledgments & References
+Implementation and planning method are inspired by following works:
+
+**Code Implementation**:
+- [HelloAgents](https://github.com/jjyaoao/HelloAgents/blob/main)
+- [AgentFlow](https://github.com/lupantech/AgentFlow/blob/main)
+- [AgentScope](https://github.com/agentscope-ai/agentscope/blob/main)
+- [Minion](https://github.com/femto/minion/blob/main)
+
+**Planning Algorithm**:
+- [ReAcTree](https://github.com/Choi-JaeWoo/ReAcTree/tree/main)
