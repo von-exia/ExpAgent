@@ -158,7 +158,7 @@ class TreeVisualizer:
                 for exec_item in node.execution_history[-1:]:  # 最后一次决策
                     decision = exec_item.get('decision', 'Unknown')
                     status = exec_item.get('status', 'Unknown')
-                    act_name = exec_item.get('action_name', 'Unknown')
+                    act_name = exec_item.get('action_name', '')
                     last_decisions.append(f"{decision}: {act_name}({status})")
 
                 if last_decisions:

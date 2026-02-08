@@ -39,7 +39,7 @@ class AgentInterface:
         tool_dict = {}
         tool_dict.update({
             "shell": Shell,
-            # "wikipedia_search": WikipediaSearch,
+            "wikipedia_search": WikipediaSearch,
             "calculator": Calculator,
             "view_text_file": ViewTextFile,
             "write_text_file": WriteTextFile, 
@@ -75,8 +75,8 @@ class AgentInterface:
                         tool_dict=tool_dict, 
                         use_skills=False,
                         use_rag=rag,
-                        planner_cfg=cfg,
-                        planner_cls=ReAcTreePlanner
+                        planner_cfg=None,
+                        planner_cls=None
                         )
 
         verifier = Verifier(

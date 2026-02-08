@@ -1,10 +1,17 @@
 import dashscope
 import numpy as np
+import os
 
 
 class DashTextEmbeddingModel:
     def __init__(self):
         print("Initializing DashTextEmbeddingModel with Ali-Clound...")
+        # 设置DashScope API密钥
+        api_key = os.getenv('DASHSCOPE_API_KEY')
+        if api_key:
+            dashscope.api_key = api_key
+        else:
+            raise ValueError("DASHSCOPE_API_KEY environment variable not set")
         
     def encode(self, query, docs):
         # 场景：为搜索引擎构建文档向量时，可以添加指令以优化用于检索的向量质量。

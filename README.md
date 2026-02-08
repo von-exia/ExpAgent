@@ -23,6 +23,7 @@ ExpAgent is a framework to play with agents for learning purposes, which is imma
 - More tools need to keep being developed, like `web search`, `read_project_structure`
 - Dynamic acts need to be implemented
 - Script of evaluation on GAIA benchmark is on the way
+- ReAcTree planner needs more samples to test `fallback` and `parallel`
 
 ## 🏗️ Architecture
 
@@ -162,7 +163,7 @@ return terminate_info['response']
 
 ## 🎯 Supported Planner
 
-- **ReAct**: Traditional reasoning-acting loop for step-by-step problem solving
+- **ReAct**: Traditional reasoning-acting loop for step-by-step problem solving. This is implemented by other agent and may be not that perfect.
 - **[ReAcTree](https://github.com/Choi-JaeWoo/ReAcTree/tree/main)**: The original paper of ReAcTree is designed for Long-Horizon Task Planning. ExpAgent transfers it to general daily tasks, and provides visualization of agent's decision flow. 
 ReAcTree is a hierarchical tree-based planning method with three control flows:
   - Sequence: Execute subtasks in order, stop on failure

@@ -1,6 +1,15 @@
 from typing import List, Optional
 import re
 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename='react.log',  # 可选：输出到文件
+    filemode='w'  # 'a'为追加模式，'w'为覆盖模式
+)
+
 NO_THINK = "\n/no_think"
 
 class Information:
@@ -39,10 +48,10 @@ class ReActNode:
     """
     ReAct算法的核心节点类，实现思考(Reasoning)和行动(Action)的循环
     """
-    def __init__(self, cfg, agent, env=None):
+    def __init__(self, cfg, agent, verifier=None):
         self.cfg = cfg
         self.agent = agent
-        self.env = env
+        self.verifier = verifier
 
         self.max_steps = cfg.max_steps
         # self.max_decisions = cfg.max_decisions
@@ -163,39 +172,12 @@ class ReActNode:
         """
         执行指定的行动并返回结果
         """
-        # 从思考中提取行动
-        action_match = re.search(r'Action:\s*(.*?)(?:\n|Observation:|$)', thought, re.DOTALL)
-        action_name = None
-        if action_match:
-            action_desc = action_match.group(1).strip()
-            # 尝试解析具体的行动名称
-            for action in self.agent.action_list:
-                if action.lower() in action_desc.lower():
-                    action_name = action
-                    break
-
-        # 如果无法从思考中提取行动，让代理选择一个合适的行动
-        if not action_name:
-            options = self.agent.action_list
-            action_name = self.agent.select(
-                query=f"Based on this thought: '{thought}' and query: '{query}', which action should be taken?",
-                options=options
-            )
-
-        if not action_name:
-            return {
-                'success': False,
-                'completed': False,
-                'result': '',
-                'action': 'No action selected',
-                'observation': 'Failed to determine appropriate action',
-                'next_query': query
-            }
 
         # 执行行动
         try:
-            action_input = f"Thought: {thought}\nQuery: {query}\nAction: {action_name}"
-            action_result = self.agent.act(action_input)
+            action_input = f"Thought: {thought}\nGoal: {query}"
+            action_name, action_result = self.agent.act(action_input)
+            action_result = action_result['response']
 
             # 检查是否是最终答案
             is_final = self.is_final_answer(action_result, query)
@@ -255,13 +237,13 @@ class ReActPlanner:
     ReAct (Reasoning and Acting) 规划器
     ReAct是一种通过交替进行推理(Reasoning)和行动(Action)来解决问题的方法
     """
-    def __init__(self, cfg, agent, env=None):
+    def __init__(self, cfg, agent, verifier=None):
         self.cfg = cfg
         self.agent = agent
-        self.env = env
-        self.node = ReActNode(cfg, agent, env)
+        self.verifier = verifier
+        self.node = ReActNode(cfg, agent, verifier)
 
-    def collect(self, query: str):
+    def collect(self, query: str, file_path=None, extrac_answer=False):
         """
         执行ReAct算法来解决查询
         """
