@@ -89,6 +89,7 @@ The objective of planning is to solve a difficult problem step by step, through 
 1) Analyze the current goal
 2) Select the optimal control flow as shwon in [Control Flow]
 3) Break down the current goal into N subgoals, based on [Act List] below
+Note: There should be **no duplicate or overlapping** content between subgoals
 
 [Control Flow]
 - sequence: Achieve subgoals sequentially. If any subgoal fails, the sequence is interrupted. Use when: Steps must be completed in order, each depends on previous step's success
@@ -349,6 +350,7 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
         reasoning_prompt = self.reasoning_prompt.format(query=query, act_list=self.action_content)
         response = self.model.response(reasoning_prompt, stream=False)
         reasoning, status = self.extract_think_from_json(response)
+        status = True if status == "completed" else False
         return reasoning, status
 
     ####################################################################################

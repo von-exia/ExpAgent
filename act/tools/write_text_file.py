@@ -363,10 +363,10 @@ Query:
     @classmethod
     def content(cls):
         return """
-Function: Write content to a text file with modify, overwrite, append or insert mode
+Function: Write content to a text file with overwrite, append or insert mode
 Method: [
     Extract file path, content, ranges and mode from query,
-    Write the content to the file using the specified mode (modify, overwrite, append, or insert),
+    Write the content to the file using the specified mode (overwrite, append, or insert),
     Return the result of the operation
 ]
 Return: Result of the write operation

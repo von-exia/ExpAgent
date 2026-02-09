@@ -112,7 +112,7 @@ agent = AgentModel(config_path,
                 action_dict=action_dict,
                 tool_dict=tool_dict,
                 use_skills=False,
-                use_rag=rag,
+                use_rag=rag, # rag is used for wikipedia search tool. If you don't use this toll, set as False and do not register this tool
                 planner_cfg=None,
                 planner_cls=None
                 )
@@ -146,7 +146,7 @@ planner = ReAcTreePlanner(
 )
 ```
 
-6. Invoke `planner.collect` to start the Agent and get the whole trajectory by `terminate_info['response']`. If you only want the final answer for the query, set `extract_answer=True`. This will call LLM to extract the final answer from the trajectory as the return. 
+4. Invoke `planner.collect` to start the Agent and get the whole trajectory by `terminate_info['response']`. If you only want the final answer for the query, set `extract_answer=True`. This will call LLM to extract the final answer from the trajectory as the return. 
 ```python
 terminate_info = planner.collect(query, extract_answer=False)
 if extract_answer:
@@ -163,14 +163,14 @@ return terminate_info['response']
 
 ## 🎯 Supported Planner
 
-- **ReAct**: Traditional reasoning-acting loop for step-by-step problem solving. This is implemented by other agent and may be not that perfect.
+- **ReAct**: Traditional reasoning-acting loop for step-by-step problem solving. This is implemented by vibe-coding and may be not that perfect.
 - **[ReAcTree](https://github.com/Choi-JaeWoo/ReAcTree/tree/main)**: The original paper of ReAcTree is designed for Long-Horizon Task Planning. ExpAgent transfers it to general daily tasks, and provides visualization of agent's decision flow. 
 ReAcTree is a hierarchical tree-based planning method with three control flows:
   - Sequence: Execute subtasks in order, stop on failure
   - Fallback: Try alternatives until one succeeds
   - Parallel: Execute multiple subtasks concurrently
 ![reactree](fig/reactree.png)
-  - Above figure and `py_test.py` are the results of query: `Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file`
+  - Above figure and `py_test.py` (originally has `add` function) are the results of query: `Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file`
 
 ## Citation
 ```
@@ -189,6 +189,7 @@ Implementation and planning method are inspired by following works:
 - [AgentFlow](https://github.com/lupantech/AgentFlow/blob/main)
 - [AgentScope](https://github.com/agentscope-ai/agentscope/blob/main)
 - [Minion](https://github.com/femto/minion/blob/main)
+- [Qwen-Code](https://github.com/QwenLM/qwen-code?tab=readme-ov-file)
 
 **Planning Algorithm**:
 - [ReAcTree](https://github.com/Choi-JaeWoo/ReAcTree/tree/main)

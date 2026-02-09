@@ -42,7 +42,12 @@ class AgentInterface:
             "wikipedia_search": WikipediaSearch,
             "calculator": Calculator,
             "view_text_file": ViewTextFile,
-            "write_text_file": WriteTextFile, 
+            "write_text_file": WriteTextFile,
+            "edit_text_file": EditTextFile,
+            "list_directory_contents": ListDirConts,
+            "grep": Grep,
+            "glob": Glob,
+            "read_many_files": ReadManyFiles,
             # "browser": BrowserProcessor,
         })
 
