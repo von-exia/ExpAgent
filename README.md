@@ -107,12 +107,14 @@ from agent_model.api_models.deepseek import DeepSeekModel
 config_path = "./models/Qwen3-8B-MNN/"
 # Initialize the API model
 model = DeepSeekModel(enable_think=False)
+# rag is used for search tool. If don't need this tool, set False.
+# If you register the search tool, RAG will be automatically registered.
 agent = AgentModel(config_path,
                 model=model,
                 action_dict=action_dict,
                 tool_dict=tool_dict,
                 use_skills=False,
-                use_rag=rag, # rag is used for wikipedia search tool. If you don't use this toll, set as False and do not register this tool
+                use_rag=rag, 
                 planner_cfg=None,
                 planner_cls=None
                 )
@@ -156,10 +158,16 @@ return terminate_info['response']
 
 ## 📋 Supported Tools
 
-- **Calculator**: Safe evaluation of mathematical expressions
+- **Calculator**: Safe evaluation of mathematical expressions and perform calculation
 - **File Operations**: Read/write text files with range support
 - **Shell Commands**: Execute system commands safely
 - **Wikipedia Search**: Wikipedia search capabilities
+- **Edit Text File**: Edit content in text files in-place by replacing old content with new content
+- **List Directory Contents**: List files and directories in a specified path
+- **Grep**: Search for patterns in files using regex with optional glob filtering
+- **Glob**: Find files matching glob patterns (e.g., "*.py", "**/*.js") 
+- **Read Many Files**: Read content of multiple text files or files matching glob patterns
+
 
 ## 🎯 Supported Planner
 
