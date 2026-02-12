@@ -53,7 +53,7 @@ class AgentModel:
         
         # Ensure the planner of child (e.g., Skill and Browser-tool)
         if (planner_cls is None or planner_cfg is None) and use_skills:
-            raise ValueError("The planner for the Skill or Browser-tool is not decided.")
+            raise ValueError("The planner for the Skill or Browser-tool is not passed.")
         self.planner_cls = planner_cls
         self.planner_cfg = planner_cfg
         
@@ -174,27 +174,22 @@ Prioritize using acts/tools to obtain current information for your answer, avoid
         if allowed_tools:
             for tool_name in allowed_tools:
                 tool_dict[tool_name] = self.act_loader._tools[tool_name]
+        else:
+            tool_dict = self.act_loader._tools
   
-        action_dict = {}
-        for action_name in self.act_loader._actions:
-            action_dict[action_name] = self.act_loader._actions[action_name]
+        action_dict = self.act_loader._actions
         
-        new_agent = AgentModel(model=self.model, 
+        skill_agent = AgentModel(model=self.model, 
                                action_dict=action_dict, 
                                tool_dict=tool_dict, 
                                use_skills=False,
-                               use_rag=False)
-        env = Verifier(model=self.model)
-        # cfg = Config()
-        # rat_planner = ReAcTreePlanner(
-        # cfg=cfg,
-        # agent=new_agent,
-        # env=env
-        # )
+                               use_rag=self.rag_generator if self.rag_generator is not None else False
+                                )
+        skill_ver = Verifier(model=self.model)
         new_planner = self.planner_cls(
             cfg=self.planner_cfg,
-            agent=new_agent,
-            env=env
+            agent=skill_agent,
+            verifier=skill_ver
         )
         
         terminate_info = new_planner.collect(skill_prompt)
@@ -427,21 +422,34 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
     #                Implementations for answer extraction action                      #
     ####################################################################################
 
+    def extract_answer_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        answer = response_dict['answer']
+        return answer
+    
     def extract_answer(self, query, response):
         prompt = f"""
-Given the query and agent's response, extract the answer base on the requirements from query in tags <answer>..</answer>:
+[EXTRACTION GUIDELINES]
+Given the query and agent's response, extract the answer base on the requirements from query:
+
 Query:
 {query}
+
 Response:
-{response}        
+{response}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "answer": "string",
+}}
+
+Return only valid JSON.     
 
 [Assistant]
 /no_think
 """
-        answer = self.model.response(prompt, False)
-        answer_match = re.search(r'<answer>(.*?)</answer>', answer, re.DOTALL | re.IGNORECASE)
-        if not answer_match:
-            return ""
-        answer = answer_match.group(1).strip()
+        response = self.model.response(prompt, False)
+        answer = self.extract_answer_from_response(response)
         print(f"Extracted answer: {answer}")
         return answer

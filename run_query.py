@@ -27,14 +27,17 @@ if __name__ == "__main__":
     # query = "If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary."
     
     # Test query for calculator
-    # query = "Compute (3.013 + 1.43 * 5.6346) * 212, rounding to neareast thousand"
+    query = "Compute (3.013 + 1.43 * 5.6346) * 212, rounding to neareast thousand"
     
     # Test query for file read/write and shell tools
     # import os 
     # cur_root = os.getcwd()
     # file_path = os.path.join(cur_root, "py_test.py") # Get absolute path of file
     # query = f"Write a new function that implements multiplication to {file_path}, also create test sample, then run this python file"
-    query = f"Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file"
+    # query = f"Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file"
+    
+    # Test skill-pdf
+    # query = f"Extract the text from resume.pdf"
     
     agent_type = "reactree"
     # agent_type = "react"

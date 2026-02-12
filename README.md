@@ -19,9 +19,9 @@ A framework to experiment on agent <strong>easily</strong>, <strong>quickly</str
 ExpAgent is a framework to play with agents for learning purposes, which is immature.
 
 ## 🚀 To Do List
-- Skill module is not available
-- More tools need to keep being developed, like `web search`, `read_project_structure`
-- Dynamic acts need to be implemented
+- More tools need to keep being developed, like `web_search`, `AI_memory`, `browser`
+- More skills need to be tested
+- Dynamic acts need to be designed and implemented
 - Script of evaluation on GAIA benchmark is on the way
 - ReAcTree planner needs more samples to test `fallback` and `parallel`
 
@@ -50,10 +50,10 @@ The project is organized into several key modules:
 ## 🚅 Quick Start
 **Step 1**: Install the required packages
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
-**Step 2-1**: Create ```api_keys.json```, if you would like to call LLM via API. For now, only support DeepSeek-V3.2. DashScope is used for the text-embedding model in RAG
+**Step 2-1**: Create ```api_keys.json```, if you would like to call LLM via API, like:
 ```json
 {
   "DEEPSEEK_API_KEY": "xxx",
@@ -62,10 +62,23 @@ pip install requirements.txt
   "HF_TOKEN": "xxx"
 }
 ```
+Use `agent_model.api_models.openai.OpenAIModel` to set your `base_url`, `model_name`, `api_key`. For DeepSeek, you can directely use `agent_model.api_models.deepseek.DeepSeekModel`. DashScope is used for the text-embedding model in RAG
 
-**Step 2-2**: If you would like to call local LLMs, the [MNN](https://github.com/alibaba/MNN/tree/master) (Mobile Neural Network) framework is adopted for deployment. You should download the MNN model from [modelscope](https://modelscope.cn/organization/MNN) and put it in the ```./models``` folder, like ```./models/Qwen3-4B-MNN```. If you have a GPU to accelerate the LLM, remember to configure MNN to use it.
+**Step 2-2**: If you would like to call local LLMs：
 
-**Step 3**: Run the run_query.py to see the result
+Option 1: the [MNN](https://github.com/alibaba/MNN/tree/master) (Mobile Neural Network) framework is adopted for deployment. You should download the MNN model from [modelscope](https://modelscope.cn/organization/MNN) and put it in the ```./models``` folder, like ```./models/Qwen3-4B-MNN```. To obtain better performance, the relatively large models (>7B) are recommended 
+
+Option 2: Start a local server through your deployment framework (e.g., `vllm`, `sglang`, `llama.cpp`), then call the server through `OpenAIModel`, the default base_rul is `http://localhost:8080/v1/`
+
+**Step 3**: Edit `agent_interface.py` to pass your model (Default: DeepSeekModel)
+```python
+config_path = "./models/Qwen3-4B-MNN/" # Initialize the local model (MNN)
+# model = OpenAIModel() # Initialize the openai-compatible model
+model = DeepSeekModel(enable_think=False) # Initialize the DeepSeek API model
+agent = AgentModel(config_path, model=model, ...) # if model is passed, the config_path is ignored
+```
+
+**Step 4**: Run the `run_query.py` to see the result
 ```bash
 python run_query.py
 ```
@@ -119,7 +132,7 @@ agent = AgentModel(config_path,
                 planner_cls=None
                 )
 ```
-`use_skills` is unavailable for now. Note that `planner_cfg` and `planner_cls` here are reserved for `perform_skill` and `perform_browser`, which need create a new agent to conduct a skill or browser.
+Note that `planner_cfg` and `planner_cls` here are reserved for `perform_skill` and `perform_browser`, which need create a new agent to conduct a skill or browser.
 
 3. Planner initialization
 
@@ -156,8 +169,11 @@ if extract_answer:
 return terminate_info['response']
 ```
 
-## 📋 Supported Tools
+## 📋 Supported Acts
+### Actions
+- **Answer**: Respond the question/answer the query/improve the response
 
+### Tools
 - **Calculator**: Safe evaluation of mathematical expressions and perform calculation
 - **File Operations**: Read/write text files with range support
 - **Shell Commands**: Execute system commands safely
@@ -168,6 +184,9 @@ return terminate_info['response']
 - **Glob**: Find files matching glob patterns (e.g., "*.py", "**/*.js") 
 - **Read Many Files**: Read content of multiple text files or files matching glob patterns
 
+### Skills
+- **PDF**: Process pdf files
+- **Skill Creator**: Create skills by LLM
 
 ## 🎯 Supported Planner
 
@@ -201,3 +220,6 @@ Implementation and planning method are inspired by following works:
 
 **Planning Algorithm**:
 - [ReAcTree](https://github.com/Choi-JaeWoo/ReAcTree/tree/main)
+
+**Skills**:
+- [Anthropics-skills](https://github.com/anthropics/skills/tree/main)

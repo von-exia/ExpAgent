@@ -100,6 +100,7 @@ class ActLoader:
         skill = self._skills[skill_name]
         combined_content = f"Skill Name: {skill.name}\n"
         combined_content += f"Content:\n{skill.content}"
+        allowed_tools = None
         if skill.allowed_tools:
             allowed_tools: List[str] = skill.allowed_tools
         return combined_content, allowed_tools
@@ -107,7 +108,14 @@ class ActLoader:
     def get_skill_prompt(self, skill_name, query):
         skill_prompt, allowed_tools = self._get_combined_skill_content(skill_name)
         prompt = f"""
-You need to solve the following query:\n{query}\n with the instructions of the skill below:
+[SKILL GUIDELINES]
+Strictly follow the content in the SKILL DOCUMENT to fulfill the user's query
+
+[SKILL DOCUMENT]
 {skill_prompt}
+
+[USER]
+Query:
+{query}
 """
         return prompt, allowed_tools

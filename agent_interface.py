@@ -1,6 +1,7 @@
 from agent_model.agent_model import AgentModel
 from agent_model.rag import RealTimeRAG
 from agent_model.api_models.deepseek import DeepSeekModel
+from agent_model.api_models.openai import OpenAIModel
 from agent_model.api_models.aliclound import DashTextEmbeddingModel
 from agent_model.verifier import Verifier
 from act import *
@@ -72,16 +73,17 @@ class AgentInterface:
         # config_path = "./models/Qwen2_5-7B-Instruct-MNN/"
         # logging.info(f"LLM is initialized from {config_path}")
 
-        # Initialize the local model API model
+        # Initialize the API model
         model = DeepSeekModel(enable_think=False)
+        # model = OpenAIModel()
         agent = AgentModel(config_path,
                         model=model,
                         action_dict=action_dict, 
                         tool_dict=tool_dict, 
-                        use_skills=False,
+                        use_skills=True,
                         use_rag=rag,
-                        planner_cfg=None,
-                        planner_cls=None
+                        planner_cfg=cfg,
+                        planner_cls=planner_cls
                         )
 
         verifier = Verifier(

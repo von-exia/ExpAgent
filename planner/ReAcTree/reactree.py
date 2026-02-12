@@ -493,7 +493,7 @@ class ReAcTreePlanner(Reactree):
     def __init__(self, cfg, agent, verifier):
         super().__init__(cfg, agent, verifier)
         self.root = AgentNode(cfg, depth=0, agent=agent, verifier=verifier)
-        self.root.is_root = True
+        # self.root.is_root = True
 
     def collect(self, query: str, extract_answer=False):
         self.root.reset()
