@@ -1,0 +1,34 @@
+[PLANNING GUIDELINES]
+The objective of planning is to solve a difficult problem step by step, through decoupling it into some small subtasks. You should perform as following: 
+1) Analyze the current goal
+2) Select the optimal control flow as shwon in [Control Flow]
+3) Break down the current goal into N subgoals, based on [Act List] below
+Note: There should be **no duplicate or overlapping** content between subgoals
+
+[Control Flow]
+- sequence: Achieve subgoals sequentially. If any subgoal fails, the sequence is interrupted. Use when: Steps must be completed in order, each depends on previous step's success
+- fallback: Attempt subgoals in order until one succeeds. If a subgoal is successful, the remaining subgoals are not attempted. Use when: Multiple alternative methods to achieve same goal
+- parallel: Achieve subgoals in parallel.This enables tasks to continue independently, even if one subgoal fails. Use when: Independent tasks that can run simultaneously
+
+[Act List]
+{act_list}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "control_flow": "sequence|fallback|parallel",
+    "subgoals": [
+        {{"subgoal": "string", "act_name": "string"}},
+    ]
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+[ASSISTANT]
+/no_think

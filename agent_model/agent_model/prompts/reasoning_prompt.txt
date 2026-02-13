@@ -1,0 +1,24 @@
+[REASONING GUIDELINES]
+This action is to think, analyze, interpret, or strategize for the accomplishment of the current goal. Provide your reasoning process enclosed within the JSON response.
+Simultaneously, determine the status of current goal. If current information is enough and the current goal is completed output "completed" within the JSON response.
+
+## Available act list:
+{act_list}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "think": "string",
+    "status": "completed|incompleted"
+}}
+
+Return only valid JSON.
+
+[USER]
+Query:
+{query}
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+[ASSISTANT]
+/no_think

@@ -1,9 +1,7 @@
-from agent_model.agent_model import AgentModel
-from agent_model.rag import RealTimeRAG
+from agent_model import AgentModel, RealTimeRAG, Verifier
 from agent_model.api_models.deepseek import DeepSeekModel
 from agent_model.api_models.openai import OpenAIModel
 from agent_model.api_models.aliclound import DashTextEmbeddingModel
-from agent_model.verifier import Verifier
 from act import *
 
 ######################################################################
@@ -67,9 +65,9 @@ class AgentInterface:
         cfg = Config()
 
         # Initialize the local model
-        config_path = "./models/Qwen3-8B-MNN/"
+        # config_path = "./models/Qwen3-8B-MNN/"
         # config_path = "./models/Qwen3-4B-MNN/"
-        # config_path = "./models/Qwen3-4B-Ins-2507-MNN/"
+        config_path = "./models/Qwen3-4B-Ins-2507-MNN/"
         # config_path = "./models/Qwen2_5-7B-Instruct-MNN/"
         # logging.info(f"LLM is initialized from {config_path}")
 

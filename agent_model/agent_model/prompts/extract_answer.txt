@@ -1,0 +1,19 @@
+[EXTRACTION GUIDELINES]
+Given the query and agent's response, extract the answer base on the requirements from query:
+
+Query:
+{query}
+
+Response:
+{response}
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "answer": "string",
+}}
+
+Return only valid JSON.     
+
+[Assistant]
+/no_think

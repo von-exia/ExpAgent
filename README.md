@@ -19,9 +19,11 @@ A framework to experiment on agent <strong>easily</strong>, <strong>quickly</str
 ExpAgent is a framework to play with agents for learning purposes, which is immature.
 
 ## 🚀 To Do List
+- Basic operation `update_plan` needs to be designed
+- Dynamic acts need to be designed and implemented
+- Envolution module and experience mechanism
 - More tools need to keep being developed, like `web_search`, `AI_memory`, `browser`
 - More skills need to be tested
-- Dynamic acts need to be designed and implemented
 - Script of evaluation on GAIA benchmark is on the way
 - ReAcTree planner needs more samples to test `fallback` and `parallel`
 
@@ -113,7 +115,7 @@ You can define `config_path` to call local MNN LLMs. If an API-based model is pa
 In addition, you can check how to add an API-based model by `DeepSeekModel`, which is very easy.
 
 ```python
-from agent_model.agent_model import AgentModel
+from agent_model import AgentModel
 from agent_model.api_models.deepseek import DeepSeekModel
 
 # Initialize the local model
@@ -146,7 +148,7 @@ The `Config` is used to set some basic parameters for the planner. For example, 
 - `max_plan`: the maximum `Plan` times for a node
 
 ```python
-from agent_model.verifier import Verifier
+from agent_model import Verifier
 from planner.ReAcTree import Config, ReAcTreePlanner
 
 verifier = Verifier(

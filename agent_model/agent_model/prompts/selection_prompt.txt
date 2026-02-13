@@ -1,0 +1,22 @@
+[SELECTION GUIDELINES]
+Choose ONLY the correct option or the most suitable action you want to perform from **OPTIONS**, to complete the current goal.
+
+[USER]
+Query:
+{query}
+
+**OPTIONS**:
+{options_text}
+
+## OUTPUT FORMAT:
+Output the option's index number and corresponding option's name.
+Output STRICTLY according to this JSON Schema:
+{{
+    "selected_index": "integer",
+    "selected_option_name": "string"
+}}
+
+Return only valid JSON.
+
+[ASSISTANT]
+/no_think
