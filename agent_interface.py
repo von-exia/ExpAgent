@@ -37,16 +37,18 @@ class AgentInterface:
 
         tool_dict = {}
         tool_dict.update({
-            "shell": Shell,
+            # "shell": Shell,
             "wikipedia_search": WikipediaSearch,
+            # "baidu_search": BaiduSearch,
+            # "web_search": WebSearch,
             "calculator": Calculator,
-            "view_text_file": ViewTextFile,
-            "write_text_file": WriteTextFile,
-            "edit_text_file": EditTextFile,
-            "list_directory_contents": ListDirConts,
-            "grep": Grep,
-            "glob": Glob,
-            "read_many_files": ReadManyFiles,
+            # "list_directory_contents": ListDirConts,
+            # "grep": Grep,
+            # "glob": Glob,
+            # "view_text_file": ViewTextFile,
+            # "read_many_files": ReadManyFiles,
+            # "write_text_file": WriteTextFile,
+            # "edit_text_file": EditTextFile,
             # "browser": BrowserProcessor,
         })
 
@@ -59,15 +61,19 @@ class AgentInterface:
         elif planner_type == "react":
             from planner.ReAct import Config, ReActPlanner
             planner_cls = ReActPlanner
+        elif planner_type == "dag_react":
+            from planner.DAG_ReAct import Config, DAGReActPlanner
+            planner_cls = DAGReActPlanner
         else:
             raise NotImplementedError(f"planner {planner_type} is not implemented")
         # Set up the verifier and planner
+        self.model_name = planner_type
         cfg = Config()
 
         # Initialize the local model
-        # config_path = "./models/Qwen3-8B-MNN/"
+        config_path = "./models/Qwen3-8B-MNN/"
         # config_path = "./models/Qwen3-4B-MNN/"
-        config_path = "./models/Qwen3-4B-Ins-2507-MNN/"
+        # config_path = "./models/Qwen3-4B-Ins-2507-MNN/"
         # config_path = "./models/Qwen2_5-7B-Instruct-MNN/"
         # logging.info(f"LLM is initialized from {config_path}")
 
@@ -78,7 +84,7 @@ class AgentInterface:
                         model=model,
                         action_dict=action_dict, 
                         tool_dict=tool_dict, 
-                        use_skills=True,
+                        use_skills=False,
                         use_rag=rag,
                         planner_cfg=cfg,
                         planner_cls=planner_cls
@@ -100,6 +106,10 @@ class AgentInterface:
         if extract_answer:
             return terminate_info
         return terminate_info['response']
+    
+    def judge(self, query, gt=None, file_path=None,):
+        answer, judge = self.planner.judge(query, gt)
+        return answer, judge
     
     def visualize(self, title=f"ReAcTree Visualization", save_path="./reactree.png"):
         self.planner.visualize(title=title, save_path=save_path)
