@@ -22,15 +22,16 @@ class GAIAEvaluator:
     Evaluates AI models on GAIA benchmark tasks
     """
     
-    def __init__(self, model_name: str = None, cache_dir: str = "./hf_cache"):
+    def __init__(self, agent_interface=None, cache_dir: str = "./hf_cache"):
         """
         Initialize GAIA evaluator
         
         Args:
-            model_name: Name of the model to evaluate
+            agent_interface: Interface to the agent being evaluated
             cache_dir: Directory to cache datasets and models
         """
-        self.model_name = model_name
+        self.model_name = agent_interface.model_name
+        self.agent_interface = agent_interface
         self.cache_dir = cache_dir
         self.data_dir = None
         self.dataset = None
@@ -69,80 +70,9 @@ class GAIAEvaluator:
         pattern = r'\d+\.\s*(.*)'
         tool_names = re.findall(pattern, res)
         return [tool.strip() for tool in tool_names if tool.strip()]
+
     
-    def evaluate_single_example(self, example: Dict[str, Any], model_response: str) -> Dict[str, Any]:
-        """
-        Evaluate a single example
-        
-        Args:
-            example: GAIA dataset example
-            model_response: Prediction from the model
-            
-        Returns:
-            Evaluation result dictionary
-        """
-        task_id = example.get("task_id", "")
-        question = example.get("Question", "")
-        final_answer = example.get("Final answer", "")
-        required_tools = self.get_required_tools(example)
-        
-        # Calculate accuracy
-        is_correct = self.calculate_accuracy(model_response, final_answer)
-        
-        result = {
-            "task_id": task_id,
-            "question": question,
-            "model_response": model_response,
-            "expected_answer": final_answer,
-            "is_correct": is_correct,
-            "required_tools": required_tools,
-            "level": example.get("Level", ""),
-            "file_path": example.get("file_path", ""),
-            "steps": example.get('Annotator Metadata', {}).get('Steps', ''),
-            "timestamp": time.time()
-        }
-        
-        return result
-    
-    def calculate_accuracy(self, prediction: str, expected: str) -> bool:
-        """
-        Calculate accuracy by comparing prediction with expected answer
-        
-        Args:
-            prediction: Model's prediction
-            expected: Expected answer from dataset
-            
-        Returns:
-            True if prediction matches expected answer, False otherwise
-        """
-        # Normalize both strings for comparison
-        pred_normalized = self.normalize_answer(prediction)
-        exp_normalized = self.normalize_answer(expected)
-        
-        return pred_normalized == exp_normalized
-    
-    def normalize_answer(self, answer: str) -> str:
-        """
-        Normalize answer for comparison
-
-        Args:
-            answer: Raw answer string
-
-        Returns:
-            Normalized answer string
-        """
-        if not isinstance(answer, str):
-            answer = str(answer)
-
-        # Remove extra spaces and convert to lowercase
-        normalized = " ".join(answer.lower().split())
-
-        # Remove common punctuation that might differ
-        normalized = normalized.replace(',', '').replace('.', '').replace('!', '').replace('?', '')
-
-        return normalized
-    
-    def run_evaluation(self, agent_interface=None) -> List[Dict[str, Any]]:
+    def run_evaluation(self) -> List[Dict[str, Any]]:
         """
         Run full evaluation on the dataset
         
@@ -159,23 +89,41 @@ class GAIAEvaluator:
         
         for i, example in enumerate(self.dataset):
             print(f"Evaluating example {i+1}/{len(self.dataset)}...")
-            
             question = example["Question"]
+            final_answer = example.get("Final answer", "")
             print(f"Question: {question}")
+            print(f"Expected Answer: {final_answer}")
             file_path = os.path.join(self.data_dir, example["file_path"]) if example["file_path"] else ""
+            print(f"File Path: {file_path}, file name: {example['file_name']}")
+            if file_path:
+                question += f"\nPlease refer to the file at {file_path} for necessary information to answer the question."
             
             # Get model prediction (this would call your model)
-            if agent_interface:
-                model_response = agent_interface.response(question, file_path, extract_answer=True)
+            if self.agent_interface:
+                model_response, is_correct = self.agent_interface.judge(question, final_answer, file_path)
             else:
                 # Placeholder for model prediction
                 model_response = f"PLACEHOLDER_PREDICTION_FOR_TASK_{example['task_id']}"
-            
+                is_correct = False
+
             # Evaluate the prediction
-            result = self.evaluate_single_example(example, model_response)
+            task_id = example.get("task_id", "")
+            required_tools = self.get_required_tools(example)
+            result = {
+                "task_id": task_id,
+                "question": question,
+                "model_response": model_response,
+                "expected_answer": final_answer,
+                "is_correct": is_correct,
+                "required_tools": required_tools,
+                "level": example.get("Level", ""),
+                "file_path": example.get("file_path", ""),
+                "steps": example.get('Annotator Metadata', {}).get('Steps', ''),
+                "timestamp": time.time()
+            }
             self.results.append(result)
-            print("Agent Reponse:", result['model_response'])
-            print("Ground Truth:", result["expected_answer"])
+            # print("Agent Reponse:", result['model_response'])
+            # print("Ground Truth:", result["expected_answer"])
             
             # Print progress
             status = "CORRECT" if result["is_correct"] else "INCORRECT"

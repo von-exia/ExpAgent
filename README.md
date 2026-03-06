@@ -177,9 +177,11 @@ return terminate_info['response']
 
 ### Tools
 - **Calculator**: Safe evaluation of mathematical expressions and perform calculation
-- **File Operations**: Read/write text files with range support
+- **File Operations**: Read/write/edit text files with range support
 - **Shell Commands**: Execute system commands safely
 - **Wikipedia Search**: Wikipedia search capabilities
+- **Baidu Search**: Baidu search capabilities
+- **Web Search**: Web search capabilities via specific URL
 - **Edit Text File**: Edit content in text files in-place by replacing old content with new content
 - **List Directory Contents**: List files and directories in a specified path
 - **Grep**: Search for patterns in files using regex with optional glob filtering
@@ -200,6 +202,7 @@ ReAcTree is a hierarchical tree-based planning method with three control flows:
   - Parallel: Execute multiple subtasks concurrently
 ![reactree](fig/reactree.png)
   - Above figure and `py_test.py` (originally has `add` function) are the results of query: `Write a new function that implements multiplication to py_test.py, also create test sample, then run this python file`
+- **DAG-ReAct**: First, planning by decomposing a question into a DAG; Second, execute via traversing the constructed DAG
 
 ## Citation
 ```

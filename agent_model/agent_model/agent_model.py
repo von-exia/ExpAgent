@@ -37,9 +37,6 @@ class AgentModel(BaseModel):
             self._init_rag_generator()
         
         self.browser_processor = None  # Initialize browser processor to None
-        self.selection_prompt = None
-        self.plan_prompt = None
-        self.reasoning_prompt = None
         self._init_prompts()
         
         # Ensure the planner of child (e.g., Skill and Browser-tool)
@@ -51,8 +48,9 @@ class AgentModel(BaseModel):
         
     def _init_prompts(self):
         self.selection_prompt = self.load_prompt("./agent_model/agent_model/prompts/selection_prompt.txt")
-        self.plan_prompt = self.load_prompt("./agent_model/agent_model/prompts/plan_prompt.txt")
         self.reasoning_prompt = self.load_prompt("./agent_model/agent_model/prompts/reasoning_prompt.txt")
+        self.plan_prompt = self.load_prompt("./agent_model/agent_model/prompts/plan_prompt.txt")
+        self.update_plan_prompt = self.load_prompt("./agent_model/agent_model/prompts/update_plan.txt")
         
     def _init_rag_generator(self):
         self.rag_generator = RealTimeRAG(chunk_size=1000)
@@ -192,6 +190,20 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
         else:
             res = self.act_loader.create(selected_act).execute(self.model, goal)
         return selected_act, res
+    
+    def direct_act(self, selected_act: str, goal: str) -> str:
+        if selected_act in ["baidu_search", "wikipedia_search"]:
+            res = self.act_loader.create(selected_act).execute(self.model, goal, self.rag_generator)
+        elif selected_act in self.act_loader._skills.keys():
+            print(f"Performing skill: {selected_act}")
+            res = self._perform_skill(selected_act, goal)
+        elif selected_act == "browser":
+            res = self._perform_browser(goal)
+        elif "browser-" in selected_act:
+            res = self.act_loader.create(selected_act).execute(self, goal)
+        else:
+            res = self.act_loader.create(selected_act).execute(self.model, goal)
+        return res
 
     ####################################################################################
     #                      Implementations for reasoning action                        #
@@ -219,9 +231,6 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
         selected_index = response_dict['selected_index']
         selected_option = response_dict['selected_option_name']
         return selected_index, selected_option
-    
-    def set_selection_prompt(self, prompt: str):
-        self.selection_prompt = prompt
     
     def select(self, 
                 query: str,
@@ -260,7 +269,7 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
     #                      Implementations for plan action                             #
     ####################################################################################
 
-    def extract_control_flow_from_json(self, response):
+    def extract_control_flow_from_response(self, response):
         response_dict = extract_dict_from_text(response)
         subgoals = []
         for subgoal_dict in response_dict['subgoals']:
@@ -271,14 +280,28 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
             'subgoal_count': len(subgoals)
             }
     
-    def set_plan_prompt(self, prompt: str):
-        self.plan_prompt = prompt
-    
     def plan(self, query: str) -> str:
         plan_prompt = self.plan_prompt.format(query=query, act_list=self.action_content)
         response = self.model.response(plan_prompt, stream=False)
-        response = self.extract_control_flow_from_json(response)
-        return response
+        plan_dict = self.extract_control_flow_from_response(response)
+        return plan_dict
+    
+    def extract_updated_plan_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        updated_subgoals = ['updated']
+        updated = response_dict['updated_subgoals']
+        for subgoal_dict in response_dict['updated_subgoals']:
+            updated_subgoals.append(subgoal_dict['updated_subgoal'])
+        return updated, updated_subgoals
+    
+    def update_plan(self, control_flow, work_mem):
+        update_plan_prompt = self.update_plan_prompt.format(act_list=self.action_list,
+                                                            working_memory=work_mem,
+                                                            control_flow=control_flow
+                                                            )
+        response = self.model.response(update_plan_prompt, False)
+        updated, updated_subgoals = self.extract_updated_plan_from_response(response)
+        return updated, updated_subgoals
 
     ####################################################################################
     #                Implementations for answer extraction action                      #
@@ -295,3 +318,20 @@ From the ACT LIST, which is the most suitable act to achieve the current goal?
         answer = self.extract_answer_from_response(response)
         print(f"Extracted answer: {answer}")
         return answer
+    
+    def extract_judge_from_response(self, response):
+        response_dict = extract_dict_from_text(response)
+        answer = response_dict['final_answer']
+        judge = True if response_dict['is_correct'] == "true" else False
+        reason = response_dict['reason']
+        return answer, judge
+    
+    def judge(self, query: str, traj: str, gt: str):
+        prompt = self.load_prompt("./agent_model/agent_model/prompts/judge_answer.txt").format(query=query, traj=traj, ground_truth=gt)
+        response = self.model.response(prompt, False)
+        print("="*20+" Judge response "+"="*20)
+        print(response)
+        print("="*50)
+        answer, judge = self.extract_judge_from_response(response)
+        print(f"Extracted answer: {answer}, Judge: {judge}")
+        return answer, judge

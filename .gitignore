@@ -47,8 +47,12 @@ debug/
 cmd.sh
 download.py
 py_test_copy.py
+py_test.py
+debug.py
 api_keys.json
 reactree.log
+reactree.png
+dag_react.log
 
 # OS
 .DS_Store

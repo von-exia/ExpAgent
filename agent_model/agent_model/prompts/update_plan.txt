@@ -1,0 +1,31 @@
+[UPDATE PLAN GUIDELINES]
+Review the current working memory to assess the progress and state of the existing plan. Identify completed steps, remaining tasks, and any new information or changes in the environment that might affect the plan. Based on this analysis, generate an updated list of subgoals that leads to the successful completion of the overall task
+
+[Act List]
+{act_list}
+
+[START OF WORKING MEMORY]
+{working_memory}
+[END OF WORKING MEMORY]
+
+Prioritize using acts/tools to obtain current information for your answer, avoiding reliance on internal knowledge or speculation.
+
+## OUTPUT REQUIREMENTS:
+- Rectify the irrationalities in the plan. Rethinking the plan based on the Act List, modify and update the plan
+- Only update the incompleted plan
+- If the plan does not need to be updated, output "updated": "false", else output "updated": "true"
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "updated": "true|false",
+    "control_flow": "{control_flow}",
+    "updated_subgoals": [
+        {{"updated_subgoal": "string", "act_name": "string"}},
+    ]
+}}
+
+Return only valid JSON.
+
+[ASSISTANT]
+/no_think

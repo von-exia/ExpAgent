@@ -8,6 +8,8 @@ from act.actions.answer import Answer
 from act.tools.calculator import Calculator
 from act.tools.shell import Shell
 from act.tools.wiki_search import WikipediaSearch
+from act.tools.baidu_search import BaiduSearch
+from act.tools.web_search import WebSearch
 from act.tools.view_text_file import ViewTextFile
 from act.tools.write_text_file import WriteTextFile
 from act.tools.list_dir_conts import ListDirConts
@@ -34,6 +36,8 @@ __all__ = [
     # Tools
     "Shell",
     "WikipediaSearch",
+    "BaiduSearch",
+    "WebSearch",
     "Calculator",
     "ViewTextFile",
     "WriteTextFile",

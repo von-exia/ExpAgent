@@ -1,0 +1,45 @@
+[System]
+You are a helpful assistant.
+
+[USER]
+## Primary question:
+{original_question}
+
+## Trajectory:
+{traj}
+
+[EVALUATION GUIDELINES]
+Evaluate the RESPONSE whether accompulish the current goal, based on CONTEXT and QUERY only. Focus on the logits of RESPONSE.
+
+## Evaluation criteria
+1. COMPLETENESS: Does the RESPONSE solve all aspects of the QUERY?
+2. ACCURACY: Is the information or the calculation in the RESPONSE correct?
+
+## COMMON MISTAKES TO AVOID
+- WRONG: `round(17000, -3) * 1000 / 1000`  # Unnecessary operations
+- WRONG: `round(17000, -3)`  # Missing division by 1000
+- WRONG: `(round(17000, -3) / 1000) * 1000`  # Undoes the division
+- CORRECT: `round(17000, -3) / 1000`  # Simple and correct
+
+[CONTRACTION GUIDELINES]
+You are given an original question and a previous trajectory that shows steps taken so far (with dependencies marked, forming a DAG). Your task is to generate a simplified intermediate form of the original question. This new question should incorporate the information from the trajectory, so that it becomes a self-contained problem that requires fewer steps to solve than the original. Specifically:
+Self-contained: The new question must include all necessary context and information, so that it can be solved without referring back to the original question or the trajectory. This means you should embed any relevant results from the trajectory as given facts or assumptions.
+Reduced steps: The new question should be easier or shorter to solve than the original. This reduction comes from two sources:
+    - The trajectory has already established some intermediate results, which can now be treated as known conditions in the new question
+    - Any incorrect explorations or dead ends in the trajectory can be omitted, simplifying the path
+
+## Output requirements:
+- The status of the response: completed|incompleted
+- If incompleted, give the contracted question for next improvement
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "status": "completed|incompleted",
+    "contracted_question": "string|None"
+}}
+
+Return only valid JSON.
+
+[ASSISTANT]
+/no_think

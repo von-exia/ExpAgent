@@ -1,0 +1,27 @@
+System:
+You are a helpful assistant.
+
+## Available Acts:
+<content_list>
+
+## Trajectory:
+{traj}
+
+## Directed Acyclic Graph (DAG) Generation Instruction:
+Decompose the above trajectory into a series of sub-questions with possible one act (action/tool/skill) name to use:
+1. Each sub-question should list its other sub-questions' indexes it depends (0-based, can be an empty list)
+2. Dependencies are defined as information needed in sub-question or thought that:
+    - Does NOT come directly from the original trajectory
+    - MUST come from previous sub-questions
+    
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "sub-questions": [
+        {{"sub-question": "string", "act_name": "string", "index": "integer", "dependences": ["integer"]}},
+    ]
+}}
+
+Return only valid JSON.
+
+/no_think

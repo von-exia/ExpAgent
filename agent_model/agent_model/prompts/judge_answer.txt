@@ -1,0 +1,36 @@
+System:
+You are a helpful assistant.
+
+User:
+<query>
+{query}
+</query>
+
+<ground_truth>
+{ground_truth}
+</ground_truth>
+
+<trajectory>
+{traj}
+</trajectory>
+
+[JUDGEMENT GUIDELINES]
+Given the query, agent's trajectory, and ground truth answer:
+(1) Extract the final answer that solves the query from trajectory
+(2) Compare the final answer with the provided ground truth to determine if both of them are equivalent
+When comparing, consider semantic equivalence. For example, numbers expressed in different formats (e.g., "17000" vs "17 thousand"), units (e.g., "5km" vs "5000m"), or synonyms should be treated as correct if they represent the same factual information 
+(3) Output the reason why you give your judge
+
+## OUTPUT FORMAT:
+Output STRICTLY according to this JSON Schema:
+{{
+    "ground_truth": "string",
+    "final_answer": "string",
+    "is_correct": "true|false",
+    "reason": "string
+}}
+
+Return only valid JSON.
+
+Assistant:
+/no_think

@@ -65,6 +65,9 @@ class TreeNode:
         }
         return structure
 
+
+
+
 START_OF_SEQ = "[START OF PREVIOUS SEQUENCE RESULTS]\n"
 END_OF_SEQ = "[END OF PREVIOUS SEQUENCE RESULTS]\n"
 START_OF_FAL = "[START OF PREVIOUS FALLBACK RESULTS]\n"
@@ -93,8 +96,7 @@ class ControlFlowNode(TreeNode):
 subgoal: {subgoal}
 observation:\n{response}
 """
-        self.cur_query_template = """
-"""
+
         self.working_memory = f"Your primary goal is: {query}\n# Control Flow: {self.content}\n"
         # Track execution history for visualization
         self.execution_history = []
@@ -119,11 +121,13 @@ observation:\n{response}
             for ind, child in enumerate(self.children):
                 next_step_id += 1
                 terminate_info = child.collect(next_step_id, 0, ctx=ctx+wm)
+                
                 logging.info("-"*20)
                 logging.info(f"Control Flow Node: Sequence {ind}:")
                 for k, v in terminate_info.items():
                     logging.info(f"{k}: {v}")
                 logging.info("-"*20)
+                
                 cur_step_id, cur_decision_id = terminate_info['step_id'], terminate_info['decision_id']
                 wm = self.update_working_memory(ind, self.subgoals[ind], terminate_info['response'])
                 
@@ -492,8 +496,12 @@ class Reactree():
 class ReAcTreePlanner(Reactree):
     def __init__(self, cfg, agent, verifier):
         super().__init__(cfg, agent, verifier)
-        self.root = AgentNode(cfg, depth=0, agent=agent, verifier=verifier)
-        # self.root.is_root = True
+        self.root = AgentNode(cfg, 
+                              depth=0, 
+                              agent=agent, 
+                              verifier=verifier, 
+                              )
+        self.root.is_root = True
 
     def collect(self, query: str, extract_answer=False):
         self.root.reset()

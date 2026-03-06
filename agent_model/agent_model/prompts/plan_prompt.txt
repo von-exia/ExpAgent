@@ -5,12 +5,12 @@ The objective of planning is to solve a difficult problem step by step, through 
 3) Break down the current goal into N subgoals, based on [Act List] below
 Note: There should be **no duplicate or overlapping** content between subgoals
 
-[Control Flow]
+## Control Flow
 - sequence: Achieve subgoals sequentially. If any subgoal fails, the sequence is interrupted. Use when: Steps must be completed in order, each depends on previous step's success
 - fallback: Attempt subgoals in order until one succeeds. If a subgoal is successful, the remaining subgoals are not attempted. Use when: Multiple alternative methods to achieve same goal
-- parallel: Achieve subgoals in parallel.This enables tasks to continue independently, even if one subgoal fails. Use when: Independent tasks that can run simultaneously
+- parallel: Achieve subgoals in parallel. This enables tasks to continue independently, even if one subgoal fails. Use when: There is no dependency between subgoals, these independent tasks that can run simultaneously
 
-[Act List]
+## Available act list:
 {act_list}
 
 ## OUTPUT FORMAT:

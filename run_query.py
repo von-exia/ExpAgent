@@ -19,15 +19,16 @@ def main(query, agent_type="reactree"):
         print("Generating visualization for ReAcTree...")
         agent_interface.visualize(title=f"ReAcTree Visualization", save_path="./reactree.png")
 
+
 if __name__ == "__main__":
     # Test query 1 from GAIA
     # query = """What is the first name of the only Malko Competition recipient from the 20th Century (after 1977) whose nationality on record is a country that no longer exists?"""
     
     # Test query 2 from GAIA
-    # query = "If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary."
+    query = "If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach? Please use the minimum perigee value on the Wikipedia page for the Moon when carrying out your calculation. Round your result to the nearest 1000 hours and do not use any comma separators if necessary."
     
     # Test query for calculator
-    query = "Compute (3.013 + 1.43 * 5.6346) * 212, rounding to neareast thousand"
+    # query = "Compute (3.013 + 1.43 * 5.6346) * 212, rounding to neareast thousand"
     
     # Test query for file read/write and shell tools
     # import os 
@@ -39,7 +40,10 @@ if __name__ == "__main__":
     # Test skill-pdf
     # query = f"Extract the text from resume.pdf"
     
-    agent_type = "reactree"
+    # query = "Comparing the battery specifications of iPhone 15 Pro and Samsung S24 Ultra"
+    
+    # agent_type = "reactree"
     # agent_type = "react"
+    agent_type = "dag_react"
     main(query, agent_type)
     

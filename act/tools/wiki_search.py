@@ -210,7 +210,7 @@ Explanation of the result:
                     "response": f"Error in Wikipedia Search tool: {e}"
                 }
 
-                
+          
         ret = ""
         print("Start RAG for wiki search results")
         st = time()
