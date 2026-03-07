@@ -3,7 +3,7 @@
 </h1>
 
 <h3 align="center">
-A framework to experiment on agent <strong>easily</strong>, <strong>quickly</strong>, and <strong>locally</strong>
+A framework to experiment on agent <strong>easily</strong>, <strong>quickly</strong>, and <strong>locally</strong> for learning purpose
 </h3>
 
 <p align="center">
@@ -16,13 +16,16 @@ A framework to experiment on agent <strong>easily</strong>, <strong>quickly</str
 - Actions/Tools/Skills can be unifiedly loaded and used locally
 - Easily implement the planner, e.g., ReAct and ReAcTree
 
-ExpAgent is a framework to play with agents for learning purposes, which is immature.
+<h3 align="center">
+If you find this project useful, please consider giving it a star! ⭐
+</h3>
+
 
 ## 🚀 To Do List
 - Basic operation `update_plan` needs to be designed
 - Dynamic acts need to be designed and implemented
 - Envolution module and experience mechanism
-- More tools need to keep being developed, like `web_search`, `AI_memory`, `browser`
+- More tools need to keep being developed, like `AI_memory`, `browser`
 - More skills need to be tested
 - Script of evaluation on GAIA benchmark is on the way
 - ReAcTree planner needs more samples to test `fallback` and `parallel`
@@ -47,6 +50,7 @@ The project is organized into several key modules:
 ### Planners (`planner/`)
 - **ReAct**: Implements the Reasoning and Acting framework with thought-action-observation cycles
 - **ReAcTree**: Advanced tree-based planner supporting sequence, fallback, and parallel execution modes
+- **DAG-ReAct**: Decompose a question into a DAG (Reasoning) and traverse the graph (Acting)
 - Configurable parameters for controlling agent behavior and execution limits
 
 ## 🚅 Quick Start
@@ -182,7 +186,6 @@ return terminate_info['response']
 - **Wikipedia Search**: Wikipedia search capabilities
 - **Baidu Search**: Baidu search capabilities
 - **Web Search**: Web search capabilities via specific URL
-- **Edit Text File**: Edit content in text files in-place by replacing old content with new content
 - **List Directory Contents**: List files and directories in a specified path
 - **Grep**: Search for patterns in files using regex with optional glob filtering
 - **Glob**: Find files matching glob patterns (e.g., "*.py", "**/*.js") 
@@ -190,7 +193,7 @@ return terminate_info['response']
 
 ### Skills
 - **PDF**: Process pdf files
-- **Skill Creator**: Create skills by LLM
+- **Skill Creator**: Create skills by LLM (Not tested)
 
 ## 🎯 Supported Planner
 
