@@ -27,7 +27,6 @@ If you find this project useful, please consider giving it a star! ⭐
 - Envolution module and experience mechanism
 - More tools need to keep being developed, like `AI_memory`, `browser`
 - More skills need to be tested
-- Script of evaluation on GAIA benchmark is on the way
 - ReAcTree planner needs more samples to test `fallback` and `parallel`
 
 ## 🏗️ Architecture
@@ -88,6 +87,12 @@ agent = AgentModel(config_path, model=model, ...) # if model is passed, the conf
 ```bash
 python run_query.py
 ```
+
+**Step 5**: Run the `run_gaia.py` to evaluate your agent on GAIA
+```bash
+python run_gaia.py
+```
+Please pay attention to the balance in your account and the tools required by GAIA. Evaluation on GAIA may require a significant amount of time and expense, and some tools may need to be implemented by yourself (e.g., Video parsing)
 
 ## 🛠️ More Usage
 
