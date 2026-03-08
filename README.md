@@ -21,6 +21,17 @@ If you find this project useful, please consider giving it a star! ⭐
 </h3>
 
 
+## 📑 Content
+- [🚀 To Do List](#-to-do-list)
+- [🏗️ Architecture](#️-architecture)
+- [🚅 Quick Start](#-quick-start)
+- [🛠️ More Usage](#️-more-usage)
+- [📋 Supported Acts](#-supported-acts)
+- [🎯 Supported Planner](#-supported-planner)
+- [Citation](#citation)
+- [Acknowledgments & References](#acknowledgments--references)
+
+
 ## 🚀 To Do List
 - Basic operation `update_plan` needs to be designed
 - Dynamic acts need to be designed and implemented
